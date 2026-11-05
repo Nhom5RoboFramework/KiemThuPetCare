@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Quản trị - PetCare</title><link rel="stylesheet" href="css/style.css"></head>
+<body><div id="site-header"></div>
+<main class="container">
+  <div class="alert" id="forbidden" style="display:none">Bạn không có quyền truy cập trang này.</div>
+  <div id="adminContent">
+    <h1>Quản trị cửa hàng</h1>
+    <div class="tabs">
+      <button class="tab active" id="tabProducts" data-panel="panelProducts" type="button">Sản phẩm</button>
+      <button class="tab" id="tabOrders" data-panel="panelOrders" type="button">Đơn hàng</button>
+      <button class="tab" id="tabUsers" data-panel="panelUsers" type="button">Người dùng</button>
+      <button class="tab" id="tabStats" data-panel="panelStats" type="button">Thống kê</button>
+    </div>
+
+    <section class="panel active" id="panelProducts">
+      <form class="card" id="productForm" novalidate>
+        <h2 style="margin-top:0" id="productFormTitle">Thêm sản phẩm</h2>
+        <input type="hidden" id="productId">
+        <div class="row">
+          <div class="field"><label for="pName">Tên sản phẩm</label><input id="pName" type="text"><div class="error" id="pNameError"></div></div>
+          <div class="field"><label for="pCategory">Danh mục</label><select id="pCategory"><option value="">-- Chọn --</option></select><div class="error" id="pCategoryError"></div></div>
+          <div class="field"><label for="pPrice">Giá (đ)</label><input id="pPrice" type="text" inputmode="numeric"><div class="error" id="pPriceError"></div></div>
+          <div class="field"><label for="pStock">Tồn kho</label><input id="pStock" type="text" inputmode="numeric"><div class="error" id="pStockError"></div></div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:3"><label for="pDescription">Mô tả</label><input id="pDescription" type="text"></div>
+          <div class="field"><label for="pImage">Biểu tượng</label><input id="pImage" type="text" placeholder="🐾"></div>
+        </div>
+        <div class="alert" id="productError"></div><div class="success" id="productMessage"></div>
+        <button class="btn" type="submit" id="saveProductButton">Lưu sản phẩm</button>
+        <button class="btn btn-outline" type="button" id="cancelEditButton" style="display:none">Hủy sửa</button>
+      </form>
+      <h2>Danh sách sản phẩm</h2>
+      <table><thead><tr><th>ID</th><th>Sản phẩm</th><th>Danh mục</th><th class="num">Giá</th><th class="num">Tồn kho</th><th>Trạng thái</th><th></th></tr></thead><tbody id="adminProductList"></tbody></table>
+    </section>
+
+    <section class="panel" id="panelOrders">
+      <div class="filters" style="max-width:340px"><div class="field"><label for="orderStatusFilter">Lọc theo trạng thái</label>
+        <select id="orderStatusFilter"><option value="">Tất cả</option><option value="pending">Chờ xác nhận</option><option value="confirmed">Đã xác nhận</option><option value="shipping">Đang giao</option><option value="completed">Hoàn thành</option><option value="cancelled">Đã hủy</option></select></div></div>
+      <div class="alert" id="adminOrderError"></div><div class="success" id="adminOrderMessage"></div>
+      <table><thead><tr><th>Mã đơn</th><th>Khách hàng</th><th class="num">Tổng tiền</th><th>Ngày đặt</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="adminOrderList"></tbody></table>
+      <p class="empty" id="adminOrderEmpty" style="display:none">Không có đơn hàng</p>
+    </section>
+
+    <section class="panel" id="panelUsers">
+      <div class="alert" id="userError"></div><div class="success" id="userMessage"></div>
+      <table><thead><tr><th>ID</th><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th><th></th></tr></thead><tbody id="userList"></tbody></table>
+    </section>
+
+    <section class="panel" id="panelStats">
+      <div class="stats">
+        <div class="stat"><b id="statTotalOrders">0</b><span>Tổng số đơn</span></div>
+        <div class="stat"><b id="statRevenue">0đ</b><span>Doanh thu (đơn hoàn thành)</span></div>
+        <div class="stat"><b id="stat-pending">0</b><span>Chờ xác nhận</span></div>
+        <div class="stat"><b id="stat-confirmed">0</b><span>Đã xác nhận</span></div>
+        <div class="stat"><b id="stat-shipping">0</b><span>Đang giao</span></div>
+        <div class="stat"><b id="stat-completed">0</b><span>Hoàn thành</span></div>
+        <div class="stat"><b id="stat-cancelled">0</b><span>Đã hủy</span></div>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="js/app.js"></script>
+<script>
+(async function () {
+  const { $, esc, money, call, setErrors, setMsg, statusBadge, dateText, STATUS } = PetCare;
+  const me = await PetCare.requireAdmin(); if (!me) return;
+
+  // ---- Thẻ
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === t.dataset.panel));
+    if (t.id === 'tabOrders') loadOrders(); if (t.id === 'tabUsers') loadUsers(); if (t.id === 'tabStats') loadStats(); if (t.id === 'tabProducts') loadProducts();
+  }));
+
+  // ---- Sản phẩm
+  const PF = ['pName', 'pCategory', 'pPrice', 'pStock'];
+  const MAP = { name: 'pName', categoryId: 'pCategory', price: 'pPrice', stock: 'pStock' };
+  let products = [];
+  const cats = await call('GET', '/api/categories');
+  (cats.data || []).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; $('pCategory').appendChild(o); });
+  function resetForm() { $('productForm').reset(); $('productId').value = ''; $('productFormTitle').textContent = 'Thêm sản phẩm'; $('cancelEditButton').style.display = 'none'; setErrors(PF, {}); setMsg('productError', ''); }
+  async function loadProducts() {
+    const r = await call('GET', '/api/admin/products'); products = r.data || [];
+    $('adminProductList').innerHTML = products.map(p => `<tr data-id="${p.id}"><td>${p.id}</td><td><b class="p-name">${esc(p.image)} ${esc(p.name)}</b></td><td>${esc(p.category)}</td>
+      <td class="num">${money(p.price)}</td><td class="num p-stock">${p.stock}</td><td>${p.isActive ? '<span class="status st-active">Đang bán</span>' : '<span class="status st-locked">Đã ẩn</span>'}</td>
+      <td><div class="actions"><button class="btn btn-outline btn-sm edit-product" data-id="${p.id}" type="button">Sửa</button>
+      <button class="btn btn-danger btn-sm delete-product" data-id="${p.id}" type="button">Xóa</button></div></td></tr>`).join('');
+  }
+  $('adminProductList').addEventListener('click', async e => {
+    const id = Number(e.target.dataset.id); if (!id) return;
+    if (e.target.classList.contains('edit-product')) {
+      const p = products.find(x => x.id === id);
+      $('productId').value = p.id; $('pName').value = p.name; $('pCategory').value = p.categoryId; $('pPrice').value = p.price; $('pStock').value = p.stock; $('pDescription').value = p.description; $('pImage').value = p.image;
+      $('productFormTitle').textContent = 'Sửa sản phẩm #' + p.id; $('cancelEditButton').style.display = 'inline-block'; setErrors(PF, {}); setMsg('productError', ''); setMsg('productMessage', '');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (e.target.classList.contains('delete-product')) {
+      if (e.target.dataset.armed !== '1') { e.target.dataset.armed = '1'; e.target.textContent = 'Bấm lại để xóa'; return; } // xác nhận hai bước, không dùng hộp thoại
+      setMsg('productError', ''); setMsg('productMessage', '');
+      const r = await call('DELETE', '/api/admin/products/' + id);
+      if (r.status === 200) { setMsg('productMessage', r.data.message); await loadProducts(); } else setMsg('productError', r.data.error);
+    }
+  });
+  $('cancelEditButton').addEventListener('click', () => { resetForm(); setMsg('productMessage', ''); });
+  $('productForm').addEventListener('submit', async e => {
+    e.preventDefault(); setErrors(PF, {}); setMsg('productError', ''); setMsg('productMessage', '');
+    const id = $('productId').value;
+    const body = { name: $('pName').value, categoryId: $('pCategory').value, price: $('pPrice').value.trim(), stock: $('pStock').value.trim(), description: $('pDescription').value, image: $('pImage').value || '🐾' };
+    const r = await call(id ? 'PUT' : 'POST', '/api/admin/products' + (id ? '/' + id : ''), body);
+    if (r.status === 200 || r.status === 201) { resetForm(); setMsg('productMessage', id ? 'Đã cập nhật sản phẩm.' : 'Đã thêm sản phẩm.'); await loadProducts(); }
+    else if (r.data.errors) { const m = {}; Object.entries(r.data.errors).forEach(([k, v]) => m[MAP[k]] = v); setErrors(PF, m); }
+    else setMsg('productError', r.data.error);
+  });
+
+  // ---- Đơn hàng
+  const NEXT = { pending: [['confirmed', 'Xác nhận'], ['cancelled', 'Hủy đơn']], confirmed: [['shipping', 'Giao hàng'], ['cancelled', 'Hủy đơn']], shipping: [['completed', 'Hoàn thành']], completed: [], cancelled: [] };
+  async function loadOrders() {
+    const st = $('orderStatusFilter').value;
+    const r = await call('GET', '/api/admin/orders' + (st ? '?status=' + st : ''));
+    if (r.status !== 200) { setMsg('adminOrderError', r.data.error); return; }
+    setMsg('adminOrderError', '');
+    $('adminOrderEmpty').style.display = r.data.length ? 'none' : 'block';
+    $('adminOrderList').innerHTML = r.data.map(o => `<tr data-id="${o.id}"><td><b class="order-code">${o.code}</b></td><td>${esc(o.customerName)}<br><small>${esc(o.customerEmail)}</small></td>
+      <td class="num">${money(o.total)}</td><td>${dateText(o.createdAt)}</td><td class="order-status">${statusBadge(o.status)}</td>
+      <td><div class="actions">${NEXT[o.status].map(([s, l]) => `<button class="btn ${s === 'cancelled' ? 'btn-danger' : ''} btn-sm status-btn" data-id="${o.id}" data-status="${s}" type="button">${l}</button>`).join('')}</div></td></tr>`).join('');
+  }
+  $('orderStatusFilter').addEventListener('change', loadOrders);
+  $('adminOrderList').addEventListener('click', async e => {
+    if (!e.target.classList.contains('status-btn')) return;
+    setMsg('adminOrderError', ''); setMsg('adminOrderMessage', '');
+    const r = await call('PUT', `/api/admin/orders/${e.target.dataset.id}/status`, { status: e.target.dataset.status });
+    if (r.status === 200) setMsg('adminOrderMessage', `Đơn ${r.data.code}: ${r.data.statusText}.`); else setMsg('adminOrderError', r.data.error);
+    await loadOrders();
+  });
+
+  // ---- Người dùng
+  async function loadUsers() {
+    const r = await call('GET', '/api/admin/users');
+    $('userList').innerHTML = (r.data || []).map(u => `<tr data-id="${u.id}"><td>${u.id}</td><td>${esc(u.fullname)}</td><td class="u-email">${esc(u.email)}</td><td>${u.role === 'admin' ? 'Quản trị' : 'Khách hàng'}</td>
+      <td class="u-status"><span class="status st-${u.status}">${u.status === 'active' ? 'Hoạt động' : 'Đã khóa'}</span></td>
+      <td>${u.id === me.id ? '' : `<button class="btn btn-sm toggle-lock ${u.status === 'active' ? 'btn-danger' : ''}" data-id="${u.id}" data-status="${u.status === 'active' ? 'locked' : 'active'}" type="button">${u.status === 'active' ? 'Khóa' : 'Mở khóa'}</button>`}</td></tr>`).join('');
+  }
+  $('userList').addEventListener('click', async e => {
+    if (!e.target.classList.contains('toggle-lock')) return;
+    setMsg('userError', ''); setMsg('userMessage', '');
+    const r = await call('PUT', `/api/admin/users/${e.target.dataset.id}/status`, { status: e.target.dataset.status });
+    if (r.status === 200) setMsg('userMessage', `Đã ${r.data.status === 'locked' ? 'khóa' : 'mở khóa'} tài khoản ${r.data.email}.`); else setMsg('userError', r.data.error);
+    await loadUsers();
+  });
+
+  // ---- Thống kê
+  async function loadStats() {
+    const r = await call('GET', '/api/admin/stats'); if (r.status !== 200) return;
+    $('statTotalOrders').textContent = r.data.totalOrders; $('statRevenue').textContent = money(r.data.revenue);
+    Object.keys(STATUS).forEach(s => { $('stat-' + s).textContent = r.data.ordersByStatus[s]; });
+  }
+  loadProducts();
+})();
+</script></body></html>

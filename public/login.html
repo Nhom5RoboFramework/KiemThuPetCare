@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title> Đăng nhập - PetCare</title><link rel="stylesheet" href="css/style.css"></head>
+<body><div id="site-header"></div>
+<main class="container"><div class="card form-card">
+  <h1>Đăng nhập</h1><p class="sub">Chào mừng bạn quay lại PetCare.</p>
+  <form id="loginForm" novalidate>
+    <div class="field"><label for="email">Email</label><input id="email" type="text" autocomplete="username"><div class="error" id="emailError"></div></div>
+    <div class="field"><label for="password">Mật khẩu</label><input id="password" type="password" autocomplete="current-password"><div class="error" id="passwordError"></div></div>
+    <div class="alert" id="loginError"></div>
+    <button class="btn" type="submit" id="loginButton" style="width:100%">Đăng nhập</button>
+  </form>
+  <p class="sub" style="margin-top:14px">Chưa có tài khoản? <a href="register.html" id="registerLink"><b>Đăng ký</b></a></p>
+</div></main>
+<script src="js/app.js"></script>
+<script>
+(function () {
+  const { $, call, setErrors, setMsg } = PetCare;
+  $('loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    setErrors(['email', 'password'], {}); setMsg('loginError', '');
+    const r = await call('POST', '/api/auth/login', { email: $('email').value, password: $('password').value });
+    if (r.status === 200) {
+      localStorage.setItem('token', r.data.token);
+      const next = new URLSearchParams(location.search).get('next');
+      location.href = next && /^[A-Za-z0-9_\-]+\.html/.test(next) ? next : (r.data.user.role === 'admin' ? 'admin.html' : 'index.html');
+    } else if (r.data.errors) setErrors(['email', 'password'], r.data.errors);
+    else setMsg('loginError', r.data.error);
+  });
+})();
+</script></body></html>

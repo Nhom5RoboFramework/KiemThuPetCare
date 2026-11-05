@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title> Đặt hàng - PetCare</title><link rel="stylesheet" href="css/style.css"></head>
+<body><div id="site-header"></div>
+<main class="container">
+  <h1>Đặt hàng</h1><p class="sub">Nhập thông tin giao hàng và chọn phương thức thanh toán.</p>
+  <div class="empty card" id="emptyCart" style="display:none">Giỏ hàng trống. <a href="index.html"><b>Tiếp tục mua sắm</b></a></div>
+  <div class="row" id="checkoutBox" style="display:none;align-items:flex-start">
+    <form class="card" id="checkoutForm" novalidate style="flex:2">
+      <div class="field"><label for="receiver">Người nhận</label><input id="receiver" type="text"><div class="error" id="receiverError"></div></div>
+      <div class="field"><label for="phone">Số điện thoại</label><input id="phone" type="text" inputmode="numeric"><div class="error" id="phoneError"></div></div>
+      <div class="field"><label for="address">Địa chỉ giao hàng</label><input id="address" type="text"><div class="error" id="addressError"></div></div>
+      <div class="field"><label>Phương thức thanh toán</label>
+        <label style="font-weight:400"><input type="radio" name="paymentMethod" id="payCod" value="cod" checked style="width:auto"> Thanh toán khi nhận hàng</label>
+        <label style="font-weight:400"><input type="radio" name="paymentMethod" id="payBank" value="bank" style="width:auto"> Chuyển khoản</label>
+        <div class="error" id="paymentMethodError"></div></div>
+      <div class="alert" id="orderError"></div>
+      <button class="btn" type="submit" id="placeOrderButton">Đặt hàng</button>
+    </form>
+    <div class="card" style="flex:1;min-width:260px"><h2 style="margin-top:0">Đơn hàng của bạn</h2><div id="summary"></div>
+      <p style="margin-top:12px;font-weight:700">Tổng tiền: <span id="orderTotal" style="color:var(--orange)"></span></p></div>
+  </div>
+  <div class="card" id="orderSuccess" style="display:none"><h2 style="margin-top:0">Đặt hàng thành công 🎉</h2>
+    <p>Mã đơn hàng: <b id="orderCode"></b></p><p>Tổng tiền: <b id="orderTotalDone"></b></p>
+    <p style="margin-top:14px"><a class="btn" href="orders.html" id="viewOrdersLink">Xem đơn hàng của tôi</a></p></div>
+</main>
+<script src="js/app.js"></script>
+<script>
+(async function () {
+  const { $, esc, money, call, setErrors, setMsg } = PetCare;
+  const u = await PetCare.requireLogin(); if (!u) return;
+  const F = ['receiver', 'phone', 'address', 'paymentMethod'];
+  const c = await call('GET', '/api/cart');
+  if (c.status !== 200 || !c.data.items.length) { $('emptyCart').style.display = 'block'; return; }
+  $('checkoutBox').style.display = 'flex';
+  $('receiver').value = u.fullname; $('phone').value = u.phone || ''; $('address').value = u.address || '';
+  $('summary').innerHTML = c.data.items.map(i => `<p class="summary-item">${esc(i.name)} × ${i.quantity} <span style="float:right">${money(i.lineTotal)}</span></p>`).join('');
+  $('orderTotal').textContent = money(c.data.total);
+  $('checkoutForm').addEventListener('submit', async e => {
+    e.preventDefault(); setErrors(F, {}); setMsg('orderError', '');
+    const pm = document.querySelector('input[name=paymentMethod]:checked');
+    const r = await call('POST', '/api/orders', { receiver: $('receiver').value, phone: $('phone').value, address: $('address').value, paymentMethod: pm ? pm.value : '' });
+    if (r.status === 201) {
+      $('checkoutBox').style.display = 'none'; $('orderSuccess').style.display = 'block';
+      $('orderCode').textContent = r.data.code; $('orderTotalDone').textContent = money(r.data.total); PetCare.refreshCartCount();
+    } else if (r.data.errors) setErrors(F, r.data.errors);
+    else setMsg('orderError', r.data.error);
+  });
+})();
+</script></body></html>

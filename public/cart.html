@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title> Giỏ hàng - PetCare</title><link rel="stylesheet" href="css/style.css"></head>
+<body><div id="site-header"></div>
+<main class="container">
+  <h1>Giỏ hàng</h1><p class="sub">Kiểm tra sản phẩm và số lượng trước khi đặt hàng.</p>
+  <div class="alert" id="cartMessage"></div>
+  <div id="cartBox" style="display:none">
+    <table><thead><tr><th>Sản phẩm</th><th class="num">Đơn giá</th><th>Số lượng</th><th class="num">Thành tiền</th><th></th></tr></thead><tbody id="cartBody"></tbody></table>
+    <div class="cart-total"><button class="btn btn-outline" id="clearCart" type="button">Xóa toàn bộ giỏ</button>
+      <span>Tổng tiền: <span id="cartTotal" style="color:var(--orange)"></span></span>
+      <a class="btn" id="checkoutButton" href="checkout.html">Đặt hàng</a></div>
+  </div>
+  <div class="empty card" id="emptyCart" style="display:none">Giỏ hàng trống. <a href="index.html" id="shopLink"><b>Tiếp tục mua sắm</b></a></div>
+</main>
+<script src="js/app.js"></script>
+<script>
+(async function () {
+  const { $, esc, money, call, setMsg } = PetCare;
+  if (!(await PetCare.requireLogin())) return;
+  async function load() {
+    const r = await call('GET', '/api/cart');
+    if (r.status !== 200) { setMsg('cartMessage', r.data.error); return; }
+    const c = r.data, has = c.items.length > 0;
+    $('cartBox').style.display = has ? 'block' : 'none'; $('emptyCart').style.display = has ? 'none' : 'block';
+    $('cartBody').innerHTML = c.items.map(i => `<tr data-id="${i.productId}">
+      <td>${esc(i.image)} <b class="item-name">${esc(i.name)}</b></td><td class="num">${money(i.price)}</td>
+      <td><input class="qty-input" type="number" min="1" value="${i.quantity}" data-id="${i.productId}" data-prev="${i.quantity}"></td>
+      <td class="num line-total">${money(i.lineTotal)}</td>
+      <td><button class="btn btn-danger btn-sm remove-btn" data-id="${i.productId}" type="button">Xóa</button></td></tr>`).join('');
+    $('cartTotal').textContent = money(c.total);
+    PetCare.refreshCartCount();
+  }
+  $('cartBody').addEventListener('change', async e => {
+    if (!e.target.classList.contains('qty-input')) return;
+    setMsg('cartMessage', '');
+    const r = await call('PUT', '/api/cart/' + e.target.dataset.id, { quantity: e.target.value });
+    if (r.status !== 200) setMsg('cartMessage', r.data.error);
+    await load();
+  });
+  $('cartBody').addEventListener('click', async e => {
+    if (!e.target.classList.contains('remove-btn')) return;
+    setMsg('cartMessage', '');
+    await call('DELETE', '/api/cart/' + e.target.dataset.id); await load();
+  });
+  $('clearCart').addEventListener('click', async () => { setMsg('cartMessage', ''); await call('DELETE', '/api/cart'); await load(); });
+  load();
+})();
+</script></body></html>

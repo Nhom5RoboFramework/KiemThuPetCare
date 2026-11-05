@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title> Hồ sơ cá nhân - PetCare</title><link rel="stylesheet" href="css/style.css"></head>
+<body><div id="site-header"></div>
+<main class="container">
+  <h1>Hồ sơ cá nhân</h1><p class="sub">Cập nhật thông tin liên hệ và đổi mật khẩu.</p>
+  <div class="row" style="align-items:flex-start">
+    <form class="card" id="profileForm" novalidate>
+      <h2 style="margin-top:0">Thông tin</h2>
+      <div class="field"><label for="email">Email</label><input id="email" type="text" readonly></div>
+      <div class="field"><label for="fullname">Họ và tên</label><input id="fullname" type="text"><div class="error" id="fullnameError"></div></div>
+      <div class="field"><label for="phone">Số điện thoại</label><input id="phone" type="text" inputmode="numeric"><div class="error" id="phoneError"></div></div>
+      <div class="field"><label for="address">Địa chỉ</label><input id="address" type="text"><div class="error" id="addressError"></div></div>
+      <div class="success" id="profileMessage"></div>
+      <button class="btn" type="submit" id="saveProfileButton">Lưu thay đổi</button>
+    </form>
+    <form class="card" id="passwordForm" novalidate>
+      <h2 style="margin-top:0">Đổi mật khẩu</h2>
+      <div class="field"><label for="currentPassword">Mật khẩu hiện tại</label><input id="currentPassword" type="password" autocomplete="current-password"><div class="error" id="currentPasswordError"></div></div>
+      <div class="field"><label for="newPassword">Mật khẩu mới</label><input id="newPassword" type="password" autocomplete="new-password"><div class="hint">Tối thiểu 8 ký tự, gồm cả chữ và số, khác mật khẩu cũ.</div><div class="error" id="newPasswordError"></div></div>
+      <div class="success" id="passwordMessage"></div>
+      <button class="btn" type="submit" id="changePasswordButton">Đổi mật khẩu</button>
+    </form>
+  </div>
+</main>
+<script src="js/app.js"></script>
+<script>
+(async function () {
+  const { $, call, setErrors, setMsg } = PetCare;
+  const u = await PetCare.requireLogin(); if (!u) return;
+  $('email').value = u.email; $('fullname').value = u.fullname; $('phone').value = u.phone || ''; $('address').value = u.address || '';
+  $('profileForm').addEventListener('submit', async e => {
+    e.preventDefault(); setErrors(['fullname', 'phone', 'address'], {}); setMsg('profileMessage', '');
+    const r = await call('PUT', '/api/me', { fullname: $('fullname').value, phone: $('phone').value, address: $('address').value });
+    if (r.status === 200) { setMsg('profileMessage', r.data.message); const n = $('userName'); if (n) n.textContent = $('fullname').value.trim(); }
+    else setErrors(['fullname', 'phone', 'address'], r.data.errors);
+  });
+  $('passwordForm').addEventListener('submit', async e => {
+    e.preventDefault(); setErrors(['currentPassword', 'newPassword'], {}); setMsg('passwordMessage', '');
+    const r = await call('PUT', '/api/me/password', { currentPassword: $('currentPassword').value, newPassword: $('newPassword').value });
+    if (r.status === 200) { setMsg('passwordMessage', r.data.message); $('passwordForm').reset(); }
+    else setErrors(['currentPassword', 'newPassword'], r.data.errors);
+  });
+})();
+</script></body></html>

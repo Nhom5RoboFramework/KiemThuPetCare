@@ -1,0 +1,8 @@
+{
+  "name": "petcare",
+  "version": "1.0.0",
+  "description": "Web thuong mai dien tu PetCare - doi tuong kiem thu cho Robot Framework",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=22.13" }
+}

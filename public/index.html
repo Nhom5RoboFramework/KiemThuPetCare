@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Danh sách sản phẩm - PetCare</title><link rel="stylesheet" href="css/style.css"></head>
+<body><div id="site-header"></div>
+<main class="container">
+  <h1>Danh sách sản phẩm 🐾</h1>
+  <p class="sub">Đồ dùng chăm sóc thú cưng: tìm kiếm, lọc theo danh mục, khoảng giá và sắp xếp.</p>
+  <form class="filters" id="filterForm">
+    <div class="field grow"><label for="searchInput">Từ khóa</label><input id="searchInput" placeholder="Ví dụ: chó, mèo, bóng..." autocomplete="off"></div>
+    <div class="field"><label for="categoryFilter">Danh mục</label><select id="categoryFilter"><option value="">Tất cả</option></select></div>
+    <div class="field"><label for="minPrice">Giá từ (đ)</label><input id="minPrice" type="number" min="0" placeholder="0"></div>
+    <div class="field"><label for="maxPrice">Đến (đ)</label><input id="maxPrice" type="number" min="0" placeholder="Không giới hạn"></div>
+    <div class="field"><label for="sortSelect">Sắp xếp</label><select id="sortSelect">
+      <option value="newest">Mới nhất</option><option value="price_asc">Giá tăng dần</option><option value="price_desc">Giá giảm dần</option><option value="name_asc">Tên A–Z</option></select></div>
+    <button class="btn" type="submit" id="applyFilter">Áp dụng</button>
+    <button class="btn btn-outline" type="button" id="resetFilter">Xóa lọc</button>
+  </form>
+  <div class="alert" id="filterError"></div>
+  <p class="sub" id="resultCount"></p>
+  <div class="product-list" id="productList"></div>
+  <p class="empty" id="emptyMessage" style="display:none">Không tìm thấy sản phẩm</p>
+  <div class="pagination" id="pagination">
+    <button class="btn btn-outline btn-sm" id="prevPage" type="button">‹ Trang trước</button>
+    <span id="pageInfo"></span>
+    <button class="btn btn-outline btn-sm" id="nextPage" type="button">Trang sau ›</button>
+  </div>
+</main>
+<script src="js/app.js"></script>
+<script>
+(async function () {
+  const { $, esc, money, call } = PetCare;
+  const qs = new URLSearchParams(location.search);
+  const state = { q: qs.get('q') || '', category: qs.get('category') || '', minPrice: qs.get('minPrice') || '', maxPrice: qs.get('maxPrice') || '', sort: qs.get('sort') || 'newest', page: Number(qs.get('page') || 1) };
+
+  const cats = await call('GET', '/api/categories');
+  (cats.data || []).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; $('categoryFilter').appendChild(o); });
+  function fillForm() { $('searchInput').value = state.q; $('categoryFilter').value = state.category; $('minPrice').value = state.minPrice; $('maxPrice').value = state.maxPrice; $('sortSelect').value = state.sort; }
+
+  async function load() {
+    const p = new URLSearchParams();
+    ['q', 'category', 'minPrice', 'maxPrice', 'sort'].forEach(k => { if (state[k]) p.set(k, state[k]); });
+    p.set('page', state.page);
+    history.replaceState(null, '', 'index.html?' + p.toString());
+    const r = await call('GET', '/api/products?' + p.toString());
+    PetCare.setMsg('filterError', r.status === 200 ? '' : r.data.error);
+    if (r.status !== 200) { $('productList').innerHTML = ''; $('resultCount').textContent = ''; $('emptyMessage').style.display = 'none'; $('pagination').style.display = 'none'; return; }
+    const d = r.data;
+    $('resultCount').textContent = d.total + ' sản phẩm';
+    $('emptyMessage').style.display = d.total === 0 ? 'block' : 'none';
+    $('pagination').style.display = d.total === 0 ? 'none' : 'flex';
+    $('productList').innerHTML = d.items.map(i => `<article class="product-card" data-id="${i.id}">
+      <div class="product-image">${esc(i.image)}</div>
+      <h3 class="product-name">${esc(i.name)}</h3>
+      <span class="category-tag">${esc(i.category)}</span>
+      <p class="product-price">${money(i.price)}</p>
+      <p class="product-stock ${i.stock === 0 ? 'out' : ''}">${i.stock === 0 ? 'Hết hàng' : 'Còn ' + i.stock + ' sản phẩm'}</p>
+      <a class="btn btn-outline detail-link" href="product.html?id=${i.id}">Xem chi tiết</a></article>`).join('');
+    $('pageInfo').textContent = `Trang ${d.page}/${d.totalPages}`;
+    $('prevPage').disabled = d.page <= 1; $('nextPage').disabled = d.page >= d.totalPages;
+  }
+  $('filterForm').addEventListener('submit', e => { e.preventDefault();
+    state.q = $('searchInput').value.trim(); state.category = $('categoryFilter').value; state.minPrice = $('minPrice').value.trim(); state.maxPrice = $('maxPrice').value.trim(); state.sort = $('sortSelect').value; state.page = 1; load(); });
+  $('resetFilter').addEventListener('click', () => { Object.assign(state, { q: '', category: '', minPrice: '', maxPrice: '', sort: 'newest', page: 1 }); fillForm(); load(); });
+  $('prevPage').addEventListener('click', () => { if (state.page > 1) { state.page--; load(); } });
+  $('nextPage').addEventListener('click', () => { state.page++; load(); });
+  fillForm(); load();
+})();
+</script></body></html>

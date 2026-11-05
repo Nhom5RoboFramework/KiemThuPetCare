@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title> Đăng ký - PetCare</title><link rel="stylesheet" href="css/style.css"></head>
+<body><div id="site-header"></div>
+<main class="container"><div class="card form-card">
+  <h1>Đăng ký tài khoản</h1><p class="sub">Tạo tài khoản để mua hàng tại PetCare.</p>
+  <form id="registerForm" novalidate>
+    <div class="field"><label for="fullname">Họ và tên</label><input id="fullname" type="text"><div class="error" id="fullnameError"></div></div>
+    <div class="field"><label for="email">Email</label><input id="email" type="text"><div class="error" id="emailError"></div></div>
+    <div class="field"><label for="phone">Số điện thoại</label><input id="phone" type="text" inputmode="numeric"><div class="error" id="phoneError"></div></div>
+    <div class="field"><label for="password">Mật khẩu</label><input id="password" type="password" autocomplete="new-password"><div class="hint">Tối thiểu 8 ký tự, gồm cả chữ và số.</div><div class="error" id="passwordError"></div></div>
+    <div class="field"><label for="confirmPassword">Xác nhận mật khẩu</label><input id="confirmPassword" type="password" autocomplete="new-password"><div class="error" id="confirmPasswordError"></div></div>
+    <div class="success" id="successMessage"></div><div class="alert" id="formError"></div>
+    <button class="btn" type="submit" id="registerButton" style="width:100%">Đăng ký</button>
+  </form>
+  <p class="sub" style="margin-top:14px">Đã có tài khoản? <a href="login.html" id="loginLink"><b>Đăng nhập</b></a></p>
+</div></main>
+<script src="js/app.js"></script>
+<script>
+(function () {
+  const { $, call, setErrors, setMsg } = PetCare;
+  const F = ['fullname', 'email', 'phone', 'password', 'confirmPassword'];
+  $('registerForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    setErrors(F, {}); setMsg('successMessage', ''); setMsg('formError', '');
+    const body = {}; F.forEach(f => body[f] = $(f).value);
+    const r = await call('POST', '/api/auth/register', body);
+    if (r.status === 201) { setMsg('successMessage', r.data.message); $('registerForm').reset(); }
+    else if (r.data.errors) setErrors(F, r.data.errors);
+    else setMsg('formError', r.data.error);
+  });
+})();
+</script></body></html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title> Đơn hàng của tôi - PetCare</title><link rel="stylesheet" href="css/style.css"></head>
+<body><div id="site-header"></div>
+<main class="container">
+  <h1>Đơn hàng của tôi</h1><p class="sub">Lịch sử đơn hàng, mới nhất ở trên cùng.</p>
+  <div class="alert" id="orderMessage"></div><div class="success" id="successMessage"></div>
+  <table id="orderTable"><thead><tr><th>Mã đơn</th><th>Ngày đặt</th><th class="num">Tổng tiền</th><th>Trạng thái</th><th></th></tr></thead><tbody id="orderList"></tbody></table>
+  <div class="empty card" id="emptyOrders" style="display:none">Bạn chưa có đơn hàng nào. <a href="index.html"><b>Mua sắm ngay</b></a></div>
+  <div class="card" id="orderDetail" style="display:none;margin-top:22px">
+    <h2 style="margin-top:0">Chi tiết đơn <span id="detailCode"></span> <span id="detailStatus"></span></h2>
+    <p>Người nhận: <b id="detailReceiver"></b> · <span id="detailPhone"></span></p>
+    <p>Địa chỉ: <span id="detailAddress"></span></p><p>Thanh toán: <span id="detailPayment"></span></p>
+    <table style="margin-top:12px"><thead><tr><th>Sản phẩm</th><th class="num">Đơn giá</th><th class="num">Số lượng</th><th class="num">Thành tiền</th></tr></thead><tbody id="detailItems"></tbody></table>
+    <p style="margin-top:12px;font-weight:700;font-size:18px">Tổng tiền: <span id="detailTotal" style="color:var(--orange)"></span></p>
+    <button class="btn btn-danger" id="cancelOrderButton" type="button" style="display:none">Hủy đơn hàng</button>
+  </div>
+</main>
+<script src="js/app.js"></script>
+<script>
+(async function () {
+  const { $, esc, money, call, setMsg, statusBadge, dateText } = PetCare;
+  if (!(await PetCare.requireLogin())) return;
+  let current = null;
+  async function loadList() {
+    const r = await call('GET', '/api/orders');
+    const list = r.data || [];
+    $('orderTable').style.display = list.length ? 'table' : 'none'; $('emptyOrders').style.display = list.length ? 'none' : 'block';
+    $('orderList').innerHTML = list.map(o => `<tr data-id="${o.id}"><td><b class="order-code">${o.code}</b></td><td>${dateText(o.createdAt)}</td><td class="num">${money(o.total)}</td><td class="order-status">${statusBadge(o.status)}</td>
+      <td><button class="btn btn-outline btn-sm view-order" data-id="${o.id}" type="button">Xem</button></td></tr>`).join('');
+  }
+  async function showDetail(id) {
+    const r = await call('GET', '/api/orders/' + id);
+    if (r.status !== 200) { setMsg('orderMessage', r.data.error); return; }
+    const o = current = r.data;
+    $('orderDetail').style.display = 'block';
+    $('detailCode').textContent = o.code; $('detailStatus').innerHTML = statusBadge(o.status);
+    $('detailReceiver').textContent = o.receiver; $('detailPhone').textContent = o.phone; $('detailAddress').textContent = o.address;
+    $('detailPayment').textContent = o.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : 'Chuyển khoản';
+    $('detailItems').innerHTML = o.items.map(i => `<tr><td>${esc(i.name)}</td><td class="num">${money(i.price)}</td><td class="num">${i.quantity}</td><td class="num">${money(i.lineTotal)}</td></tr>`).join('');
+    $('detailTotal').textContent = money(o.total);
+    $('cancelOrderButton').style.display = o.status === 'pending' ? 'inline-block' : 'none';
+  }
+  $('orderList').addEventListener('click', e => { if (e.target.classList.contains('view-order')) { setMsg('orderMessage', ''); setMsg('successMessage', ''); showDetail(e.target.dataset.id); } });
+  $('cancelOrderButton').addEventListener('click', async () => {
+    setMsg('orderMessage', ''); setMsg('successMessage', '');
+    const r = await call('POST', '/api/orders/' + current.id + '/cancel');
+    if (r.status === 200) { setMsg('successMessage', 'Đã hủy đơn hàng.'); await loadList(); await showDetail(current.id); }
+    else setMsg('orderMessage', r.data.error);
+  });
+  await loadList();
+  const id = new URLSearchParams(location.search).get('id'); if (id) showDetail(id);
+})();
+</script></body></html>
