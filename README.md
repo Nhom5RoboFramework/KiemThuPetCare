@@ -89,3 +89,6 @@ Mọi API trả JSON; lỗi có dạng `{ "error": "...", "errors": { "tênTrư�
 - **orders.html:** `orderList` (`.order-code`, `.order-status`, `.view-order`), `orderDetail`, `detailStatus`, `detailTotal`, `cancelOrderButton`, `orderMessage`, `successMessage`
 - **profile.html:** `email`, `fullname`, `phone`, `address`, `saveProfileButton`, `profileMessage`, `currentPassword`, `newPassword`, `changePasswordButton`, `passwordMessage`
 - **admin.html:** thẻ `tabProducts`, `tabOrders`, `tabUsers`, `tabStats`; sản phẩm `pName`, `pCategory`, `pPrice`, `pStock`, `pDescription`, `saveProductButton`, `adminProductList` (`.edit-product`, `.delete-product` – bấm hai lần để xóa); đơn hàng `orderStatusFilter`, `adminOrderList` (`.status-btn` với `data-status`), `adminOrderMessage`, `adminOrderError`; người dùng `userList` (`.toggle-lock`); thống kê `statTotalOrders`, `statRevenue`, `stat-<trạngThái>`
+
+# KiemThuPetCare
+Sau khi nhận được nhận xét và góp ý từ thầy Trần Tuấn Vinh, nhóm đã tiếp thu và quyết định tái phát triển dự án. Dựa vào những kinh nghệm đã có, hoàn thiện 1 dự án bài bản, có quy củ
