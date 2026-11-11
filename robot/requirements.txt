@@ -1,0 +1,8 @@
+# Khung kiểm thử: chạy các test Robot và tạo báo cáo.
+robotframework>=7.0,<8.0
+
+# Thư viện điều khiển trình duyệt Chrome để kiểm thử giao diện web.
+robotframework-seleniumlibrary>=6.5,<7.0
+
+# Thư viện gửi HTTP request; suite dùng để nạp lại dữ liệu mẫu trước mỗi ca.
+robotframework-requests>=0.9,<1.0
