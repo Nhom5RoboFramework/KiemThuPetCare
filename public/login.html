@@ -7,6 +7,8 @@
     <div class="field"><label for="email">Email</label><input id="email" type="text" autocomplete="username"><div class="error" id="emailError"></div></div>
     <div class="field"><label for="password">Mật khẩu</label><input id="password" type="password" autocomplete="current-password"><div class="error" id="passwordError"></div></div>
     <div class="alert" id="loginError"></div>
+    <button class="link-btn" id="resendVerificationButton" type="button" hidden>Gửi lại email xác minh</button>
+    <div class="success" id="resendMessage"></div>
     <button class="btn" type="submit" id="loginButton" style="width:100%">Đăng nhập</button>
   </form>
   <p class="sub" style="margin-top:14px">Chưa có tài khoản? <a href="register.html" id="registerLink"><b>Đăng ký</b></a></p>
@@ -17,14 +19,22 @@
   const { $, call, setErrors, setMsg } = PetCare;
   $('loginForm').addEventListener('submit', async e => {
     e.preventDefault();
-    setErrors(['email', 'password'], {}); setMsg('loginError', '');
+    setErrors(['email', 'password'], {}); setMsg('loginError', ''); setMsg('resendMessage', ''); $('resendVerificationButton').hidden = true;
     const r = await call('POST', '/api/auth/login', { email: $('email').value, password: $('password').value });
     if (r.status === 200) {
       localStorage.setItem('token', r.data.token);
       const next = new URLSearchParams(location.search).get('next');
       location.href = next && /^[A-Za-z0-9_\-]+\.html/.test(next) ? next : (r.data.user.role === 'admin' ? 'admin.html' : 'index.html');
     } else if (r.data.errors) setErrors(['email', 'password'], r.data.errors);
-    else setMsg('loginError', r.data.error);
+    else {
+      setMsg('loginError', r.data.error);
+      if (r.data.error && r.data.error.includes('chưa được xác minh')) $('resendVerificationButton').hidden = false;
+    }
+  });
+  $('resendVerificationButton').addEventListener('click', async () => {
+    setMsg('resendMessage', '');
+    const r = await call('POST', '/api/auth/resend-verification', { email: $('email').value });
+    setMsg('resendMessage', r.data.message || r.data.error);
   });
 })();
 </script></body></html>

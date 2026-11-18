@@ -5,7 +5,7 @@ Test Teardown     Close Browser
 Documentation     Kiểm thử quy tắc đổi mật khẩu khách hàng.
 
 *** Test Cases ***
-Đổi mật khẩu thành công và đăng nhập lại bằng mật khẩu mới
+[ACC-PASSWORD-01] Đổi mật khẩu thành công và đăng nhập lại bằng mật khẩu mới
     Đăng Nhập Khách Hàng
     Go To    ${DIA_CHI_WEB}/profile.html
     Wait Until Element Is Visible    id:changePasswordButton
@@ -21,7 +21,7 @@ Documentation     Kiểm thử quy tắc đổi mật khẩu khách hàng.
     Wait Until Location Contains    index.html
     Wait Until Element Is Visible    id:userName
 
-Đổi mật khẩu từ chối mật khẩu hiện tại sai
+[ACC-PASSWORD-02] Đổi mật khẩu từ chối mật khẩu hiện tại sai
     Đăng Nhập Khách Hàng
     Go To    ${DIA_CHI_WEB}/profile.html
     Wait Until Element Is Visible    id:changePasswordButton
@@ -30,7 +30,7 @@ Documentation     Kiểm thử quy tắc đổi mật khẩu khách hàng.
     Click Button    id:changePasswordButton
     Wait Until Element Contains    id:currentPasswordError    không đúng
 
-Mật khẩu mới phải đủ tám ký tự và có cả chữ lẫn số
+[ACC-PASSWORD-03] Mật khẩu mới phải đủ tám ký tự và có cả chữ lẫn số
     Đăng Nhập Khách Hàng
     Go To    ${DIA_CHI_WEB}/profile.html
     Wait Until Element Is Visible    id:changePasswordButton
@@ -42,7 +42,7 @@ Mật khẩu mới phải đủ tám ký tự và có cả chữ lẫn số
     Click Button    id:changePasswordButton
     Wait Until Element Contains    id:newPasswordError    ít nhất 8 ký tự
 
-Mật khẩu mới phải khác mật khẩu hiện tại
+[ACC-PASSWORD-04] Mật khẩu mới phải khác mật khẩu hiện tại
     Đăng Nhập Khách Hàng
     Go To    ${DIA_CHI_WEB}/profile.html
     Wait Until Element Is Visible    id:changePasswordButton
@@ -51,7 +51,7 @@ Mật khẩu mới phải khác mật khẩu hiện tại
     Click Button    id:changePasswordButton
     Wait Until Element Contains    id:newPasswordError    phải khác mật khẩu cũ
 
-Mật khẩu hiện tại và mật khẩu mới là bắt buộc
+[ACC-PASSWORD-05] Mật khẩu hiện tại và mật khẩu mới là bắt buộc
     Đăng Nhập Khách Hàng
     Go To    ${DIA_CHI_WEB}/profile.html
     Wait Until Element Is Visible    id:changePasswordButton

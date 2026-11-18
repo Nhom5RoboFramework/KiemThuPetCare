@@ -1,0 +1,8 @@
+Tên package trong requirements.txt phải giữ nguyên để pip nhận diện; phần giải thích bên dưới dùng tiếng Việt.
+
+robotframework — Bộ khung chạy file .robot, điều phối ca kiểm thử và tạo báo cáo.
+robotframework-seleniumlibrary — Cung cấp lệnh điều khiển Chrome để kiểm thử giao diện web.
+robotframework-requests — Gửi HTTP request; suite dùng để gọi API nạp lại dữ liệu mẫu.
+
+Cài các package bằng lệnh:
+python -m pip install -r robot/requirements.txt

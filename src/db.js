@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('customer','admin')),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','locked')),
+  email_verified INTEGER NOT NULL DEFAULT 0 CHECK (email_verified IN (0,1)),
   failed_attempts INTEGER NOT NULL DEFAULT 0,
   locked_until INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL
@@ -67,6 +68,21 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 `);
 
+// Nâng cấp database đã tạo từ phiên bản trước: tài khoản mẫu/cũ được xem là đã xác minh.
+const userColumns = db.prepare('PRAGMA table_info(users)').all();
+if (!userColumns.some(column => column.name === 'email_verified')) {
+  db.exec('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 1 CHECK (email_verified IN (0,1))');
+}
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+`);
+
 // Chạy nhiều lệnh trong một giao dịch: lỗi thì hoàn tác toàn bộ.
 function tx(fn) {
   db.exec('BEGIN');
@@ -103,10 +119,10 @@ const PRODUCTS = [
 
 function seed() {
   const now = new Date().toISOString();
-  const insU = db.prepare('INSERT INTO users (fullname, email, phone, address, password_hash, role, status, created_at) VALUES (?,?,?,?,?,?,?,?)');
-  insU.run('Quản trị viên', 'admin@petcare.vn', '0900000000', '1 Đường Láng, Hà Nội', hashPassword('Admin123'), 'admin', 'active', now);
-  insU.run('Nguyễn Văn A', 'khach@petcare.vn', '0912345678', '12 Nguyễn Trãi, Hà Nội', hashPassword('Khach123'), 'customer', 'active', now);
-  insU.run('Tài Khoản Bị Khóa', 'khoa@petcare.vn', '0987654321', '', hashPassword('Khoa1234'), 'customer', 'locked', now);
+  const insU = db.prepare('INSERT INTO users (fullname, email, phone, address, password_hash, role, status, email_verified, created_at) VALUES (?,?,?,?,?,?,?,?,?)');
+  insU.run('Quản trị viên', 'admin@petcare.vn', '0900000000', '1 Đường Láng, Hà Nội', hashPassword('Admin123'), 'admin', 'active', 1, now);
+  insU.run('Nguyễn Văn A', 'khach@petcare.vn', '0912345678', '12 Nguyễn Trãi, Hà Nội', hashPassword('Khach123'), 'customer', 'active', 1, now);
+  insU.run('Tài Khoản Bị Khóa', 'khoa@petcare.vn', '0987654321', '', hashPassword('Khoa1234'), 'customer', 'locked', 1, now);
   const insC = db.prepare('INSERT INTO categories (name) VALUES (?)');
   CATEGORIES.forEach(c => insC.run(c));
   const insP = db.prepare('INSERT INTO products (category_id, name, description, image, price, stock, is_active, created_at) VALUES (?,?,?,?,?,?,?,?)');
@@ -116,7 +132,7 @@ function seed() {
 // Xóa sạch dữ liệu và nạp lại dữ liệu mẫu (dùng cho kiểm thử và lần chạy đầu).
 function reset() {
   tx(() => {
-    ['order_items', 'orders', 'cart_items', 'products', 'categories', 'users'].forEach(t => db.exec(`DELETE FROM ${t}`));
+    ['order_items', 'orders', 'cart_items', 'email_verification_tokens', 'products', 'categories', 'users'].forEach(t => db.exec(`DELETE FROM ${t}`));
     db.exec("DELETE FROM sqlite_sequence");
     seed();
   });

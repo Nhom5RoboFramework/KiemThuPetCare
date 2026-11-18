@@ -79,7 +79,7 @@ api.put('/api/admin/orders/:id/status', requireAdmin, ctx => {
 });
 
 // FR23 – Khóa, mở tài khoản
-const userRow = u => ({ id: u.id, fullname: u.fullname, email: u.email, phone: u.phone, role: u.role, status: u.status, createdAt: u.created_at });
+const userRow = u => ({ id: u.id, fullname: u.fullname, email: u.email, phone: u.phone, role: u.role, status: u.status, emailVerified: Boolean(u.email_verified), createdAt: u.created_at });
 api.get('/api/admin/users', requireAdmin, () => db.prepare('SELECT * FROM users ORDER BY id').all().map(userRow));
 api.put('/api/admin/users/:id/status', requireAdmin, ctx => {
   const id = Number(ctx.params.id), st = ctx.body.status;

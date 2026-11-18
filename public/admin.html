@@ -138,7 +138,7 @@
   async function loadUsers() {
     const r = await call('GET', '/api/admin/users');
     $('userList').innerHTML = (r.data || []).map(u => `<tr data-id="${u.id}"><td>${u.id}</td><td>${esc(u.fullname)}</td><td class="u-email">${esc(u.email)}</td><td>${u.role === 'admin' ? 'Quản trị' : 'Khách hàng'}</td>
-      <td class="u-status"><span class="status st-${u.status}">${u.status === 'active' ? 'Hoạt động' : 'Đã khóa'}</span></td>
+      <td class="u-status"><span class="status st-${u.status}">${u.status === 'active' ? 'Hoạt động' : 'Đã khóa'}</span><br><small>${u.emailVerified ? 'Email đã xác minh' : 'Chưa xác minh email'}</small></td>
       <td>${u.id === me.id ? '' : `<button class="btn btn-sm toggle-lock ${u.status === 'active' ? 'btn-danger' : ''}" data-id="${u.id}" data-status="${u.status === 'active' ? 'locked' : 'active'}" type="button">${u.status === 'active' ? 'Khóa' : 'Mở khóa'}</button>`}</td></tr>`).join('');
   }
   $('userList').addEventListener('click', async e => {
