@@ -5,6 +5,7 @@ Library    RequestsLibrary
 *** Variables ***
 ${DIA_CHI_WEB}    http://localhost:3101
 ${TRINH_DUYET}    chrome
+${TOC_DO_SELENIUM}    0.5 seconds
 
 *** Keywords ***
 Đặt Lại Dữ Liệu Kiểm Thử
@@ -16,6 +17,7 @@ ${TRINH_DUYET}    chrome
 Mở Trang PetCare
     [Arguments]    ${trang}=index.html
     Open Browser    ${DIA_CHI_WEB}/${trang}    ${TRINH_DUYET}
+    Set Selenium Speed    ${TOC_DO_SELENIUM}
     Set Window Size    1440    1000
 
 Chuẩn Bị Ca Kiểm Thử
